@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Meeting Harmony Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   CSS VARIABLES & RESET
+═══════════════════════════════════════════════════════════ */
+:root {
+  --bg-deep:      #020b18;
+  --bg-card:      #071428;
+  --bg-card2:     #091827;
+  --border:       #0d2a4d;
+  --border-glow:  rgba(0,212,255,0.25);
+  --cyan:         #00d4ff;
+  --cyan-dim:     rgba(0,212,255,0.08);
+  --indigo:       #6366f1;
+  --violet:       #7c3aed;
+  --success:      #10b981;
+  --success-dim:  rgba(16,185,129,0.12);
+  --warning:      #f59e0b;
+  --warning-dim:  rgba(245,158,11,0.12);
+  --danger:       #ef4444;
+  --danger-dim:   rgba(239,68,68,0.12);
+  --info:         #3b82f6;
+  --info-dim:     rgba(59,130,246,0.12);
+  --text:         #e2e8f0;
+  --text-muted:   #64748b;
+  --text-dim:     #334155;
+  --font-head:    'Orbitron', monospace;
+  --font-mono:    'JetBrains Mono', monospace;
+  --font-body:    'DM Sans', sans-serif;
+  --radius:       10px;
+  --shadow:       0 4px 24px rgba(0,0,0,0.5);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  animation: bgCycle 50s infinite;
+}
+@keyframes bgCycle {
+  0%   { background-color: #020b18; }   /* deep black-blue */
+  20%  { background-color: #1a0a0a; }   /* deep red */
+  40%  { background-color: #03120a; }   /* deep green */
+  60%  { background-color: #020b18; }   /* black */
+  80%  { background-color: #03120a; }   /* deep green */
+  100% { background-color: #020b18; }   /* back to start */
+}
+/* Animated grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+body > * { position: relative; z-index: 1; }
+
+/* ═══════════════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════════════ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(7,20,40,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.logo-icon {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(0,212,255,0.3);
+}
+.header h1 {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 1.5px;
+  line-height: 1.2;
+}
+.header h1 span { color: var(--cyan); }
+.header-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 5px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  animation: pulse-dot 2s infinite;
+}
+.status-dot.recording {
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+  animation: pulse-dot 0.8s infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+}
+.live-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.4);
+  border-radius: 100px;
+  padding: 5px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--danger);
+  font-weight: 600;
+}
+.live-badge.active { display: flex; }
+.live-badge .blink {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: pulse-dot 0.6s infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT GRID
+═══════════════════════════════════════════════════════════ */
+.layout {
+  display: grid;
+  grid-template-columns: 250px 1fr 290px;
+  grid-template-rows: 1fr;
+  gap: 0;
+  height: calc(100vh - 67px);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LEFT PANEL — CONTROLS
+═══════════════════════════════════════════════════════════ */
+.left-panel {
+  background: rgba(7,20,40,0.8);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-header {
+  padding: 16px 16px 10px;
+  font-family: var(--font-head);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+}
+
+/* Mode Tabs */
+.mode-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.mode-tab {
+  flex: 1;
+  padding: 11px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.mode-tab.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+  background: var(--cyan-dim);
+}
+.mode-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.03); }
+
+/* Tab content */
+.tab-pane { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.tab-pane.active { display: flex; }
+
+/* Upload Zone */
+.upload-zone {
+  margin: 14px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 22px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: var(--bg-card);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--cyan);
+  background: var(--cyan-dim);
+}
+.upload-zone .uz-icon { font-size: 26px; margin-bottom: 8px; }
+.upload-zone p {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.upload-zone p b { color: var(--cyan); font-weight: 500; }
+#file-input { display: none; }
+
+/* Processing indicator */
+.processing-bar {
+  display: none;
+  margin: 0 14px 8px;
+  background: var(--border);
+  border-radius: 4px;
+  height: 3px;
+  overflow: hidden;
+}
+.processing-bar.active { display: block; }
+.processing-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  animation: shimmer 1.2s infinite;
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* Sample list */
+.samples-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+}
+.samples-scroll::-webkit-scrollbar { width: 4px; }
+.samples-scroll::-webkit-scrollbar-track { background: transparent; }
+.samples-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.sample-group-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 10px 8px 5px;
+}
+.sample-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: left;
+  font-size: 12px;
+  font-family: var(--font-body);
+  margin-bottom: 2px;
+}
+.sample-btn:hover { background: var(--cyan-dim); color: var(--text); }
+.sample-btn.active { background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--border-glow); }
+.sample-btn .s-icon { font-size: 15px; flex-shrink: 0; }
+.sample-btn .s-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.sample-btn .s-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sample-btn .s-size { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+
+/* Live Recording Panel */
+.live-panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.btn-record {
+  width: 100%;
+  padding: 13px;
+  border: 2px solid var(--danger);
+  border-radius: var(--radius);
+  background: rgba(239,68,68,0.08);
+  color: var(--danger);
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-record:hover { background: rgba(239,68,68,0.18); }
+.btn-record.recording {
+  background: var(--danger);
+  color: #fff;
+  animation: record-glow 1.2s infinite;
+}
+@keyframes record-glow {
+  0%,100% { box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+  50%     { box-shadow: 0 0 24px rgba(239,68,68,0.8); }
+}
+
+.live-info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.live-info-card h4 {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.live-stat { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+.live-stat-label { color: var(--text-muted); }
+.live-stat-value { font-family: var(--font-mono); color: var(--cyan); font-size: 13px; font-weight: 500; }
+
+.live-canvas-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+.live-canvas-wrap h4 {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+#live-canvas { width: 100%; height: 70px; display: block; }
+
+.live-instructions {
+  background: var(--info-dim);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 11px;
+  color: var(--info);
+  line-height: 1.6;
+}
+.live-instructions b { font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════
+   CENTER PANEL — VISUALIZATIONS
+═══════════════════════════════════════════════════════════ */
+.center-panel {
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.center-panel::-webkit-scrollbar { width: 5px; }
+.center-panel::-webkit-scrollbar-track { background: transparent; }
+.center-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Welcome state */
+.welcome-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-align: center;
+  padding: 40px;
+}
+.welcome-state.hidden { display: none; }
+.welcome-icon {
+  font-size: 60px;
+  filter: drop-shadow(0 0 20px rgba(0,212,255,0.4));
+}
+.welcome-state h2 {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 1px;
+}
+.welcome-state p { color: var(--text-muted); font-size: 13px; max-width: 400px; line-height: 1.7; }
+.welcome-steps {
+  display: flex;
+  gap: 20px;
+  margin-top: 8px;
+}
+.welcome-step {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  flex: 1;
+  text-align: center;
+}
+.welcome-step .ws-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0 auto 10px;
+  color: #fff;
+}
+.welcome-step p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+/* Chart cards */
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.chart-card:hover { border-color: var(--border-glow); }
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.chart-card-header h3 {
+  font-family: var(--font-head);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+.chart-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.chart-card img {
+  width: 100%;
+  display: block;
+  height: auto;
+  max-height: 200px;
+  object-fit: contain;
+  background: var(--bg-card);
+}
+
+/* File info bar */
+.file-info-bar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.file-info-bar.visible { display: flex; }
+.fi-icon { font-size: 18px; }
+.fi-main { flex: 1; }
+.fi-name { font-weight: 600; color: var(--text); }
+.fi-meta { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; margin-top: 2px; }
+
+/* Live mode chart */
+.live-rms-card { display: none; }
+.live-rms-card.active { display: block; }
+#live-rms-chart { width: 100%; max-height: 120px; }
+
+/* ═══════════════════════════════════════════════════════════
+   RIGHT PANEL — METRICS & GAUGE
+═══════════════════════════════════════════════════════════ */
+.right-panel {
+  background: rgba(7,20,40,0.8);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.right-panel::-webkit-scrollbar { width: 4px; }
+.right-panel::-webkit-scrollbar-thumb { background: var(--border); }
+
+.rp-section {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.rp-section-title {
+  font-family: var(--font-head);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* Harmony Gauge */
+.gauge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+#gauge-svg { width: 200px; height: 130px; overflow: visible; }
+.gauge-score-text {
+  font-family: var(--font-head);
+  font-size: 36px;
+  font-weight: 900;
+  fill: var(--cyan);
+  transition: fill 0.5s;
+}
+.gauge-label-text {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  fill: var(--text-muted);
+  letter-spacing: 1.5px;
+}
+.gauge-subtitle {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+.gauge-quality-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 14px;
+  border-radius: 100px;
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  border: 1px solid var(--border-glow);
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  transition: all 0.4s;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.metric-card {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px;
+  transition: border-color 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--cyan);
+  opacity: 0.6;
+}
+.metric-card.success::before { background: var(--success); }
+.metric-card.warning::before { background: var(--warning); }
+.metric-card.danger::before  { background: var(--danger); }
+.metric-card:hover { border-color: var(--border-glow); }
+.metric-icon { font-size: 16px; margin-bottom: 6px; }
+.metric-val {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+  transition: color 0.4s;
+}
+.metric-card.success .metric-val { color: var(--success); }
+.metric-card.warning .metric-val { color: var(--warning); }
+.metric-card.danger  .metric-val { color: var(--danger); }
+.metric-label-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.4px;
+}
+
+/* Donut Chart */
+#donut-chart { max-height: 160px; }
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Warnings Panel */
+.warnings-list { display: flex; flex-direction: column; gap: 7px; }
+.warning-item {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: fadeSlideIn 0.35s ease;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.warning-item.critical {
+  border-color: rgba(239,68,68,0.35);
+  background: var(--danger-dim);
+}
+.warning-item.warning {
+  border-color: rgba(245,158,11,0.35);
+  background: var(--warning-dim);
+}
+.warning-item.success {
+  border-color: rgba(16,185,129,0.35);
+  background: var(--success-dim);
+}
+.warning-item.info {
+  border-color: rgba(59,130,246,0.35);
+  background: var(--info-dim);
+}
+.wi-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.wi-body { flex: 1; min-width: 0; }
+.wi-title {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  margin-bottom: 3px;
+  letter-spacing: 0.3px;
+}
+.warning-item.critical  .wi-title { color: var(--danger); }
+.warning-item.warning   .wi-title { color: var(--warning); }
+.warning-item.success   .wi-title { color: var(--success); }
+.warning-item.info      .wi-title { color: var(--info); }
+.wi-msg { font-size: 10.5px; color: var(--text-muted); line-height: 1.5; }
+
+.no-data-msg {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 20px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════════════════════════ */
+.toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 340px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toastIn 0.35s cubic-bezier(0.16,1,0.3,1);
+  pointer-events: all;
+  backdrop-filter: blur(10px);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(50px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes toastOut {
+  to { opacity: 0; transform: translateX(50px) scale(0.95); }
+}
+.toast.leaving { animation: toastOut 0.3s ease forwards; }
+.toast.critical { border-color: rgba(239,68,68,0.5); background: rgba(7,20,40,0.97); }
+.toast.warning  { border-color: rgba(245,158,11,0.5); background: rgba(7,20,40,0.97); }
+.toast.success  { border-color: rgba(16,185,129,0.5); background: rgba(7,20,40,0.97); }
+.toast-icon { font-size: 20px; flex-shrink: 0; }
+.toast-body { flex: 1; }
+.toast-title {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+.toast.critical .toast-title { color: var(--danger); }
+.toast.warning  .toast-title { color: var(--warning); }
+.toast.success  .toast-title { color: var(--success); }
+.toast.info     .toast-title { color: var(--info); }
+.toast-msg { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+.toast-close {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 14px; padding: 0; line-height: 1; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.toast-close:hover { color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLLBAR GLOBAL & UTILITIES
+═══════════════════════════════════════════════════════════ */
+.hidden { display: none !important; }
+.fade-in { animation: fadeSlideIn 0.4s ease; }
+
+/* Progress bar for live analysis */
+.analysis-timer {
+  height: 2px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1px;
+  margin-top: 8px;
+}
+.analysis-timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-icon">🎙</div>
+    <div>
+      <h1>MEETING <span>HARMONY</span> ANALYZER</h1>
+      <div class="header-sub">AI-POWERED AUDIO ANALYTICS  ·  DSP ENGINE v1.0</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="live-badge" class="live-badge">
+      <div class="blink"></div>
+      LIVE RECORDING
+    </div>
+    <div class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">System Ready</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════ LAYOUT ══════════════ -->
+<div class="layout">
+
+  <!-- ── LEFT PANEL ── -->
+  <aside class="left-panel">
+    <div class="panel-header">▶ Input Source</div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-tab="prerecorded">📁 Pre-recorded</button>
+      <button class="mode-tab" data-tab="live">🔴 Live Audio</button>
+    </div>
+
+    <!-- Pre-recorded tab -->
+    <div id="tab-prerecorded" class="tab-pane active">
+      <div class="upload-zone" id="drop-zone">
+        <div class="uz-icon">📂</div>
+        <p>Drop <b>.wav file</b> here or<br/>click to browse</p>
+        <input type="file" id="file-input" accept=".wav,.WAV"/>
+      </div>
+      <div id="processing-bar" class="processing-bar"></div>
+
+      <div class="samples-scroll">
+        <div class="sample-group-label">▸ Meeting Scenarios</div>
+        <div id="scenario-list"></div>
+        <div class="sample-group-label">▸ Speaker Profiles</div>
+        <div id="speaker-list"></div>
+      </div>
+    </div>
+
+    <!-- Live tab -->
+    <div id="tab-live" class="tab-pane">
+      <div class="live-panel">
+        <button class="btn-record" id="btn-record">⏺ START RECORDING</button>
+
+        <div class="live-info-card">
+          <h4>■ Live Metrics</h4>
+          <div class="live-stat">
+            <span class="live-stat-label">Harmony Score</span>
+            <span class="live-stat-value" id="live-score">—</span>
+          </div>
+          <div class="live-stat">
+            <span class="live-stat-label">Active Speech</span>
+            <span class="live-stat-value" id="live-active">—</span>
+          </div>
+          <div class="live-stat">
+            <span class="live-stat-label">Overlap</span>
+            <span class="live-stat-value" id="live-overlap">—</span>
+          </div>
+          <div class="live-stat">
+            <span class="live-stat-label">Silence</span>
+            <span class="live-stat-value" id="live-silence">—</span>
+          </div>
+          <div class="analysis-timer">
+            <div class="analysis-timer-bar" id="timer-bar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="live-canvas-wrap">
+          <h4>■ Input Waveform</h4>
+          <canvas id="live-canvas"></canvas>
+        </div>
+
+        <div class="live-instructions">
+          <b>How Live Mode Works:</b><br/>
+          Records from your microphone and sends audio to the backend every 3 seconds.
+          Harmony metrics update in real time. For best results, use in a quiet environment with multiple speakers.
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── CENTER PANEL ── -->
+  <main class="center-panel" id="center-panel">
+
+    <!-- Welcome -->
+    <div class="welcome-state" id="welcome-state">
+      <div class="welcome-icon">🎙️</div>
+      <h2>UPLOAD AUDIO TO BEGIN ANALYSIS</h2>
+      <p>Select a pre-recorded WAV file or a sample from the library to analyze meeting communication dynamics using DSP.</p>
+      <div class="welcome-steps">
+        <div class="welcome-step">
+          <div class="ws-num">1</div>
+          <p>Upload WAV file or select sample from the left panel</p>
+        </div>
+        <div class="welcome-step">
+          <div class="ws-num">2</div>
+          <p>Backend applies bandpass filter, STFT, amplitude analysis</p>
+        </div>
+        <div class="welcome-step">
+          <div class="ws-num">3</div>
+          <p>View spectrogram, metrics, harmony score & warnings</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- File info bar (shows after analysis) -->
+    <div class="file-info-bar" id="file-info-bar">
+      <div class="fi-icon" id="fi-icon">🎙️</div>
+      <div class="fi-main">
+        <div class="fi-name" id="fi-name">—</div>
+        <div class="fi-meta" id="fi-meta">—</div>
+      </div>
+    </div>
+
+    <!-- Spectrogram -->
+    <div class="chart-card hidden" id="spectrogram-card">
+      <div class="chart-card-header">
+        <h3>⬛ STFT Spectrogram</h3>
+        <span class="chart-badge">Short-Time Fourier Transform</span>
+      </div>
+      <img id="spectrogram-img" alt="STFT Spectrogram"/>
+    </div>
+
+    <!-- Waveform -->
+    <div class="chart-card hidden" id="waveform-card">
+      <div class="chart-card-header">
+        <h3>〰️ Audio Waveform</h3>
+        <span class="chart-badge">Speech Region Annotation</span>
+      </div>
+      <img id="waveform-img" alt="Waveform"/>
+    </div>
+
+    <!-- RMS Energy -->
+    <div class="chart-card hidden" id="rms-card">
+      <div class="chart-card-header">
+        <h3>⚡ RMS Energy Timeline</h3>
+        <span class="chart-badge">Amplitude Classification</span>
+      </div>
+      <img id="rms-img" alt="RMS Energy"/>
+    </div>
+
+    <!-- Live RMS Chart (only in live mode) -->
+    <div class="chart-card live-rms-card" id="live-rms-card">
+      <div class="chart-card-header">
+        <h3>⚡ Live RMS Energy</h3>
+        <span class="chart-badge">Rolling 3-second window</span>
+      </div>
+      <div style="padding: 12px;">
+        <canvas id="live-rms-chart"></canvas>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── RIGHT PANEL ── -->
+  <aside class="right-panel">
+
+    <!-- Harmony Score Gauge -->
+    <div class="rp-section">
+      <div class="rp-section-title">◉ Harmony Score</div>
+      <div class="gauge-wrapper">
+        <svg id="gauge-svg" viewBox="0 0 200 130">
+          <defs>
+            <linearGradient id="gaugeFill" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#ef4444"/>
+              <stop offset="45%"  stop-color="#f59e0b"/>
+              <stop offset="100%" stop-color="#10b981"/>
+            </linearGradient>
+          </defs>
+          <!-- Background arc -->
+          <path id="gauge-bg"
+                d="M 20 105 A 80 80 0 0 1 180 105"
+                fill="none"
+                stroke="#0d2a4d"
+                stroke-width="14"
+                stroke-linecap="round"/>
+          <!-- Value arc -->
+          <path id="gauge-arc"
+                d="M 20 105 A 80 80 0 0 1 180 105"
+                fill="none"
+                stroke="url(#gaugeFill)"
+                stroke-width="14"
+                stroke-linecap="round"
+                stroke-dasharray="0 251.3"
+                style="transition: stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1);"/>
+          <!-- Needle dot -->
+          <circle id="gauge-dot" cx="20" cy="105" r="5"
+                  fill="#00d4ff"
+                  filter="drop-shadow(0 0 4px #00d4ff)"
+                  style="transition: cx 1.2s cubic-bezier(0.4,0,0.2,1), cy 1.2s cubic-bezier(0.4,0,0.2,1);"/>
+          <!-- Score text -->
+          <text id="gauge-score" x="100" y="90"
+                text-anchor="middle"
+                font-family="Orbitron, monospace"
+                font-size="34"
+                font-weight="900"
+                fill="#00d4ff"
+                style="transition: fill 0.5s;">--</text>
+          <!-- Label -->
+          <text x="100" y="112"
+                text-anchor="middle"
+                font-family="JetBrains Mono, monospace"
+                font-size="8"
+                fill="#475569"
+                letter-spacing="2">/ 100  HARMONY</text>
+        </svg>
+        <div class="gauge-quality-label" id="gauge-quality">Awaiting Analysis</div>
+      </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="rp-section">
+      <div class="rp-section-title">■ Key Metrics</div>
+      <div class="metrics-grid">
+        <div class="metric-card success">
+          <div class="metric-icon">🗣️</div>
+          <div class="metric-val" id="m-active">--</div>
+          <div class="metric-label-text">Active Speech</div>
+        </div>
+        <div class="metric-card danger">
+          <div class="metric-icon">🔊</div>
+          <div class="metric-val" id="m-overlap">--</div>
+          <div class="metric-label-text">Overlap %</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">🔇</div>
+          <div class="metric-val" id="m-silence">--</div>
+          <div class="metric-label-text">Silence %</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">⏱️</div>
+          <div class="metric-val" id="m-duration">--</div>
+          <div class="metric-label-text">Duration (s)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">💬</div>
+          <div class="metric-val" id="m-utterances">--</div>
+          <div class="metric-label-text">Utterances</div>
+        </div>
+        <div class="metric-card warning">
+          <div class="metric-icon">⚡</div>
+          <div class="metric-val" id="m-energy">--</div>
+          <div class="metric-label-text">Avg Energy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Donut Chart -->
+    <div class="rp-section">
+      <div class="rp-section-title">● Activity Distribution</div>
+      <canvas id="donut-chart"></canvas>
+      <div class="donut-legend" id="donut-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#10b981"></div>
+          <span id="leg-active">Active Speech: --</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ef4444"></div>
+          <span id="leg-overlap">Overlap: --</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#475569"></div>
+          <span id="leg-silence">Silence: --</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    <div class="rp-section">
+      <div class="rp-section-title">⚠ Diagnostics</div>
+      <div class="warnings-list" id="warnings-list">
+        <div class="no-data-msg">No data yet. Load an audio file to see diagnostics.</div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- ══════════════ TOAST CONTAINER ══════════════ -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ══════════════ JAVASCRIPT ══════════════ -->
+<script>
+/* ─── Config ─────────────────────────────────────────────────── */
+const API = '';  // empty = same origin
+
+/* ─── State ──────────────────────────────────────────────────── */
+let donutChart    = null;
+let liveRmsChart  = null;
+let wsLive        = null;
+let mediaRecorder = null;
+let audioCtx      = null;
+let audioWorklet  = null;
+let micStream     = null;
+let isRecording   = false;
+let liveCanvasCtx = null;
+let liveBuffer    = [];
+let timerInterval = null;
+let timerProgress = 0;
+
+/* ─── DOM Refs ───────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOT: Load samples on page load
+═══════════════════════════════════════════════════════════════ */
+(async function boot() {
+  try {
+    const res = await fetch(`${API}/api/samples`);
+    const data = await res.json();
+    renderSampleList(data.scenarios || [], 'scenario-list');
+    renderSampleList(data.speakers  || [], 'speaker-list');
+  } catch(e) {
+    console.warn('Could not load samples:', e);
+    $('scenario-list').innerHTML = '<div class="no-data-msg">Backend not running</div>';
+  }
+  initDonutChart();
+  initLiveRmsChart();
+  initLiveCanvas();
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   SAMPLE LIST RENDER
+═══════════════════════════════════════════════════════════════ */
+function renderSampleList(samples, containerId) {
+  const container = $(containerId);
+  if (!samples.length) {
+    container.innerHTML = '<div class="no-data-msg">No files found</div>';
+    return;
+  }
+  container.innerHTML = samples.map(s => `
+    <button class="sample-btn" data-filename="${s.filename}" onclick="loadSample(this,'${s.filename}')">
+      <span class="s-icon">${s.icon}</span>
+      <span class="s-info">
+        <span class="s-name">${s.label}</span>
+        <span class="s-size">${s.size_kb} KB</span>
+      </span>
+    </button>
+  `).join('');
+}
+
+/* ─── Load a pre-loaded sample ───────────────────────────────── */
+async function loadSample(btn, filename) {
+  document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  setStatus('analyzing', `Analyzing ${filename}…`);
+  showProcessing(true);
+  try {
+    const res = await fetch(`${API}/api/sample/${encodeURIComponent(filename)}`);
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    showResults(data);
+    setStatus('ready', 'Analysis Complete');
+  } catch(e) {
+    setStatus('error', 'Error: ' + e.message);
+    showToast({level:'critical', icon:'❌', title:'Analysis Failed', msg: e.message});
+  } finally {
+    showProcessing(false);
+  }
+}
+
+/* ─── Upload file ────────────────────────────────────────────── */
+$('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) uploadFile(e.target.files[0]);
+});
+$('drop-zone').addEventListener('click', () => $('file-input').click());
+$('drop-zone').addEventListener('dragover', e => { e.preventDefault(); $('drop-zone').classList.add('drag-over'); });
+$('drop-zone').addEventListener('dragleave', () => $('drop-zone').classList.remove('drag-over'));
+$('drop-zone').addEventListener('drop', e => {
+  e.preventDefault();
+  $('drop-zone').classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+});
+
+async function uploadFile(file) {
+  if (!file.name.match(/\.wav$/i)) {
+    showToast({level:'warning', icon:'⚠️', title:'Invalid Format', msg:'Only .wav files are supported.'});
+    return;
+  }
+  setStatus('analyzing', `Uploading ${file.name}…`);
+  showProcessing(true);
+  document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('active'));
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const res = await fetch(`${API}/api/analyze`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Server error');
+    }
+    const data = await res.json();
+    showResults(data);
+    setStatus('ready', 'Analysis Complete');
+  } catch(e) {
+    setStatus('error', 'Upload error: ' + e.message);
+    showToast({level:'critical', icon:'❌', title:'Upload Failed', msg: e.message});
+  } finally {
+    showProcessing(false);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESULTS RENDERER
+═══════════════════════════════════════════════════════════════ */
+function showResults(data) {
+  // Show/hide sections
+  $('welcome-state').classList.add('hidden');
+  $('file-info-bar').classList.add('visible');
+  ['spectrogram-card','waveform-card','rms-card'].forEach(id => {
+    $(id).classList.remove('hidden');
+    $(id).classList.add('fade-in');
+  });
+  $('live-rms-card').classList.remove('active');
+
+  // File info bar
+  $('fi-icon').textContent = data.icon || '🎙️';
+  $('fi-name').textContent = data.display_name || data.filename;
+  $('fi-meta').textContent =
+    `${data.duration}s  ·  ${data.sample_rate} Hz  ·  ${data.n_utterances || 0} utterances  ·  ${data.category || 'custom'}`;
+
+  // Charts (server-rendered images)
+  $('spectrogram-img').src = `data:image/png;base64,${data.spectrogram_b64}`;
+  $('waveform-img').src    = `data:image/png;base64,${data.waveform_b64}`;
+  $('rms-img').src         = `data:image/png;base64,${data.rms_b64}`;
+
+  // Gauge
+  animateGauge(data.harmony_score);
+
+  // Metrics cards
+  animateNumber($('m-active'),     0, data.active_pct, '%');
+  animateNumber($('m-overlap'),    0, data.overlap_pct, '%');
+  animateNumber($('m-silence'),    0, data.silence_pct, '%');
+  animateNumber($('m-duration'),   0, data.duration, 's');
+  animateNumber($('m-utterances'), 0, data.n_utterances || 0, '');
+  animateNumber($('m-energy'),     0, data.avg_energy, '');
+
+  // Donut chart
+  updateDonut(data.active_pct, data.overlap_pct, data.silence_pct);
+
+  // Warnings (right panel + toasts)
+  renderWarnings(data.warnings || []);
+  fireWarningToasts(data.warnings || []);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GAUGE
+═══════════════════════════════════════════════════════════════ */
+const ARC_LEN = 251.3;   // π × 80  (semicircle r=80)
+const CX = 100, CY = 105, R = 80;
+
+function animateGauge(score) {
+  const arc      = $('gauge-arc');
+  const scoreEl  = $('gauge-score');
+  const qualEl   = $('gauge-quality');
+  const dotEl    = $('gauge-dot');
+
+  const frac = Math.max(0, Math.min(1, score / 100));
+  const filled = frac * ARC_LEN;
+  arc.style.strokeDasharray = `${filled} ${ARC_LEN - filled}`;
+
+  // Gauge dot position along the arc (from left: angle 180° to 0°)
+  const angle = Math.PI - (frac * Math.PI);   // goes from π (left) to 0 (right)
+  const dx = CX + R * Math.cos(angle);
+  const dy = CY - R * Math.sin(angle);
+  dotEl.setAttribute('cx', dx.toFixed(1));
+  dotEl.setAttribute('cy', dy.toFixed(1));
+
+  // Color
+  let color, quality;
+  if      (score >= 80) { color = '#10b981'; quality = '● EXCELLENT'; }
+  else if (score >= 65) { color = '#22d3ee'; quality = '● GOOD';      }
+  else if (score >= 50) { color = '#f59e0b'; quality = '● AVERAGE';   }
+  else if (score >= 30) { color = '#f97316'; quality = '⚠ POOR';      }
+  else                  { color = '#ef4444'; quality = '🚨 CRITICAL';  }
+
+  scoreEl.setAttribute('fill', color);
+  dotEl.setAttribute('fill', color);
+  dotEl.style.filter = `drop-shadow(0 0 6px ${color})`;
+  qualEl.textContent = quality;
+  qualEl.style.color  = color;
+  qualEl.style.borderColor = color + '55';
+  qualEl.style.background  = color + '18';
+
+  // Animate number
+  let start = 0, prev = null;
+  const duration = 1200;
+  const startTime = performance.now();
+  function tick(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const val = Math.round(ease * score);
+    if (val !== prev) { scoreEl.textContent = val; prev = val; }
+    if (t < 1) requestAnimationFrame(tick);
+    else scoreEl.textContent = score;
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   METRIC NUMBER ANIMATION
+═══════════════════════════════════════════════════════════════ */
+function animateNumber(el, from, to, unit) {
+  const duration = 900;
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const val = from + (to - from) * ease;
+    el.textContent = Number.isInteger(to) ? Math.round(val) + unit : val.toFixed(1) + unit;
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DONUT CHART
+═══════════════════════════════════════════════════════════════ */
+function initDonutChart() {
+  const ctx = $('donut-chart').getContext('2d');
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Active Speech', 'Overlap', 'Silence'],
+      datasets: [{
+        data: [0, 0, 0],
+        backgroundColor: ['#10b981', '#ef4444', '#475569'],
+        borderColor:      ['#020b18'],
+        borderWidth: 3,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      cutout: '68%',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#071428',
+          borderColor:      '#0d2a4d',
+          borderWidth: 1,
+          titleColor: '#e2e8f0',
+          bodyColor:  '#64748b',
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.toFixed(1)}%`
+          }
+        }
+      },
+      animation: { duration: 800, easing: 'easeInOutCubic' }
+    }
+  });
+}
+
+function updateDonut(active, overlap, silence) {
+  donutChart.data.datasets[0].data = [active, overlap, silence];
+  donutChart.update();
+  $('leg-active').textContent  = `Active Speech: ${active}%`;
+  $('leg-overlap').textContent = `Overlap: ${overlap}%`;
+  $('leg-silence').textContent = `Silence: ${silence}%`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE RMS CHART
+═══════════════════════════════════════════════════════════════ */
+function initLiveRmsChart() {
+  const ctx = $('live-rms-chart').getContext('2d');
+  liveRmsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'RMS Energy',
+        data: [],
+        borderColor: '#00d4ff',
+        backgroundColor: 'rgba(0,212,255,0.08)',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          display: false
+        },
+        y: {
+          display: true,
+          grid:   { color: '#0d2a4d' },
+          ticks:  { color: '#475569', font: { family: 'JetBrains Mono', size: 9 } }
+        }
+      },
+      plugins: { legend: { display: false } },
+      animation: { duration: 0 }
+    }
+  });
+}
+
+function updateLiveRmsChart(rmsData, timesData) {
+  const MAX = 80;
+  liveRmsChart.data.labels   = timesData.slice(-MAX).map(t => t.toFixed(1));
+  liveRmsChart.data.datasets[0].data = rmsData.slice(-MAX);
+  liveRmsChart.update('none');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WARNINGS
+═══════════════════════════════════════════════════════════════ */
+function renderWarnings(warnings) {
+  const list = $('warnings-list');
+  if (!warnings.length) {
+    list.innerHTML = '<div class="no-data-msg">No diagnostics available.</div>';
+    return;
+  }
+  list.innerHTML = warnings.map(w => `
+    <div class="warning-item ${w.level}">
+      <div class="wi-icon">${w.icon}</div>
+      <div class="wi-body">
+        <div class="wi-title">${w.title}</div>
+        <div class="wi-msg">${w.msg}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+let toastQueue = [];
+function fireWarningToasts(warnings) {
+  // Only fire for critical/warning, with delay
+  warnings.filter(w => w.level === 'critical' || w.level === 'warning').forEach((w, i) => {
+    setTimeout(() => showToast(w), i * 600 + 300);
+  });
+  // Always show first success
+  const first = warnings.find(w => w.level === 'success');
+  if (first) setTimeout(() => showToast(first), 300);
+}
+
+function showToast(w) {
+  const id = 'toast-' + Date.now() + Math.random();
+  const el = document.createElement('div');
+  el.className = `toast ${w.level}`;
+  el.id = id;
+  el.innerHTML = `
+    <div class="toast-icon">${w.icon}</div>
+    <div class="toast-body">
+      <div class="toast-title">${w.title}</div>
+      <div class="toast-msg">${w.msg}</div>
+    </div>
+    <button class="toast-close" onclick="dismissToast('${id}')">✕</button>
+  `;
+  $('toast-container').appendChild(el);
+
+  // Auto-dismiss (critical stays longer)
+  const delay = w.level === 'critical' ? 8000 : 5000;
+  setTimeout(() => dismissToast(id), delay);
+}
+
+function dismissToast(id) {
+  const el = $(id);
+  if (!el) return;
+  el.classList.add('leaving');
+  setTimeout(() => el.remove(), 300);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE CANVAS (input waveform visualizer)
+═══════════════════════════════════════════════════════════════ */
+function initLiveCanvas() {
+  const canvas = $('live-canvas');
+  liveCanvasCtx = canvas.getContext('2d');
+  canvas.width  = canvas.offsetWidth  || 200;
+  canvas.height = canvas.offsetHeight || 70;
+}
+
+function drawLiveWaveform(data) {
+  const canvas = $('live-canvas');
+  const ctx    = liveCanvasCtx;
+  const W = canvas.width, H = canvas.height;
+  ctx.fillStyle = '#071428';
+  ctx.fillRect(0, 0, W, H);
+  if (!data || !data.length) return;
+
+  const step = Math.max(1, Math.floor(data.length / W));
+  ctx.beginPath();
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth   = 1;
+  for (let i = 0; i < W; i++) {
+    const idx = Math.min(i * step, data.length - 1);
+    const v = data[idx];
+    const y = (H / 2) + v * (H / 2) * 0.9;
+    if (i === 0) ctx.moveTo(i, y);
+    else         ctx.lineTo(i, y);
+  }
+  ctx.stroke();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE RECORDING — WebSocket + AudioWorklet
+═══════════════════════════════════════════════════════════════ */
+$('btn-record').addEventListener('click', toggleRecording);
+
+async function toggleRecording() {
+  if (!isRecording) await startRecording();
+  else              await stopRecording();
+}
+
+async function startRecording() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } });
+  } catch(e) {
+    showToast({level:'critical', icon:'🎤', title:'Microphone Denied', msg:'Please allow microphone access in your browser settings.'});
+    return;
+  }
+
+  // Open WebSocket
+  const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/live';
+  wsLive = new WebSocket(wsUrl);
+  wsLive.binaryType = 'arraybuffer';
+
+  wsLive.onopen    = () => console.log('[WS] Connected');
+  wsLive.onmessage = e => handleLiveMetrics(JSON.parse(e.data));
+  wsLive.onerror   = e => console.warn('[WS] Error', e);
+  wsLive.onclose   = () => { if (isRecording) stopRecording(); };
+
+  // AudioWorklet setup
+  audioCtx = new AudioContext({ sampleRate: 16000 });
+  const processorCode = `
+    class PCMProcessor extends AudioWorkletProcessor {
+      constructor() { super(); this._buf = []; }
+      process(inputs) {
+        const ch = inputs[0]?.[0];
+        if (ch) {
+          this._buf.push(...ch);
+          if (this._buf.length >= 1600) {   // 0.1s chunks
+            this.port.postMessage(Float32Array.from(this._buf));
+            this._buf = [];
+          }
+        }
+        return true;
+      }
+    }
+    registerProcessor('pcm-processor', PCMProcessor);
+  `;
+  const blob    = new Blob([processorCode], { type: 'application/javascript' });
+  const blobUrl = URL.createObjectURL(blob);
+  await audioCtx.audioWorklet.addModule(blobUrl);
+  URL.revokeObjectURL(blobUrl);
+
+  const src       = audioCtx.createMediaStreamSource(micStream);
+  audioWorklet    = new AudioWorkletNode(audioCtx, 'pcm-processor');
+  audioWorklet.port.onmessage = e => {
+    const pcm = e.data;
+    // Send to backend
+    if (wsLive && wsLive.readyState === WebSocket.OPEN) {
+      wsLive.send(pcm.buffer);
+    }
+    // Draw waveform
+    drawLiveWaveform(Array.from(pcm));
+  };
+  src.connect(audioWorklet);
+  audioWorklet.connect(audioCtx.destination);
+
+  // UI
+  isRecording = true;
+  $('btn-record').classList.add('recording');
+  $('btn-record').textContent = '⏹ STOP RECORDING';
+  $('live-badge').classList.add('active');
+  $('status-dot').classList.add('recording');
+  setStatus('recording', 'Live Recording Active');
+
+  // Show live charts
+  $('welcome-state').classList.add('hidden');
+  ['spectrogram-card','waveform-card','rms-card'].forEach(id => $(id).classList.add('hidden'));
+  $('live-rms-card').classList.add('active');
+  $('file-info-bar').classList.remove('visible');
+
+  // Progress timer
+  startProgressTimer();
+}
+
+async function stopRecording() {
+  isRecording = false;
+  micStream?.getTracks().forEach(t => t.stop());
+  audioWorklet?.disconnect();
+  audioCtx?.close();
+  wsLive?.close();
+  micStream = audioCtx = audioWorklet = wsLive = null;
+
+  $('btn-record').classList.remove('recording');
+  $('btn-record').textContent = '⏺ START RECORDING';
+  $('live-badge').classList.remove('active');
+  $('status-dot').classList.remove('recording');
+  setStatus('ready', 'Recording Stopped');
+  stopProgressTimer();
+}
+
+function handleLiveMetrics(data) {
+  if (data.type === 'ping') return;
+  if (data.type === 'error') {
+    console.warn('[Live]', data.msg);
+    return;
+  }
+  // Update left panel live stats
+  $('live-score').textContent   = (data.harmony_score || 0).toFixed(1);
+  $('live-active').textContent  = (data.active_pct    || 0).toFixed(1) + '%';
+  $('live-overlap').textContent = (data.overlap_pct   || 0).toFixed(1) + '%';
+  $('live-silence').textContent = (data.silence_pct   || 0).toFixed(1) + '%';
+
+  // Update gauge & metrics on right
+  animateGauge(data.harmony_score || 0);
+  animateNumber($('m-active'),     0, data.active_pct  || 0, '%');
+  animateNumber($('m-overlap'),    0, data.overlap_pct || 0, '%');
+  animateNumber($('m-silence'),    0, data.silence_pct || 0, '%');
+  updateDonut(data.active_pct || 0, data.overlap_pct || 0, data.silence_pct || 0);
+
+  // Live RMS chart
+  if (data.rms_data && data.times_data) {
+    updateLiveRmsChart(data.rms_data, data.times_data);
+  }
+
+  // Warnings
+  renderWarnings(data.warnings || []);
+  // Only toast critical in live mode (avoid spam)
+  (data.warnings || []).filter(w => w.level === 'critical').slice(0, 1).forEach(w => showToast(w));
+
+  // Reset timer
+  resetProgressTimer();
+}
+
+function startProgressTimer() {
+  timerProgress = 0;
+  timerInterval = setInterval(() => {
+    timerProgress = Math.min(timerProgress + (100 / 30), 100);  // fills in 3s
+    $('timer-bar').style.width = timerProgress + '%';
+  }, 100);
+}
+function stopProgressTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  $('timer-bar').style.width = '0%';
+}
+function resetProgressTimer() {
+  timerProgress = 0;
+  $('timer-bar').style.width = '0%';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODE TABS
+═══════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.tab;
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $('tab-' + target).classList.add('active');
+
+    // Stop recording if switching away from live
+    if (target !== 'live' && isRecording) stopRecording();
+
+    // Hide live UI elements if going to prerecorded
+    if (target === 'prerecorded') {
+      $('live-rms-card').classList.remove('active');
+    }
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS INDICATOR
+═══════════════════════════════════════════════════════════════ */
+function setStatus(state, text) {
+  $('status-text').textContent = text;
+  const dot = $('status-dot');
+  dot.style.background = state === 'recording' ? 'var(--danger)'  :
+                         state === 'analyzing'  ? 'var(--warning)' :
+                         state === 'error'      ? 'var(--danger)'  :
+                                                  'var(--success)';
+  dot.style.boxShadow = `0 0 8px ${dot.style.background}`;
+}
+
+function showProcessing(show) {
+  $('processing-bar').classList.toggle('active', show);
+}
+
+/* ─── Resize live canvas on window resize ──── */
+window.addEventListener('resize', () => {
+  const c = $('live-canvas');
+  c.width = c.offsetWidth || 200;
+});
+</script>
+</body>
+</html>
