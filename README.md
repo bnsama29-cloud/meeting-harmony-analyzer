@@ -3,6 +3,7 @@
 A real-time audio analytics dashboard that measures meeting communication quality using DSP signal processing. Scores meetings on a 0–100 scale based on speech balance, overlap, and silence.
 
 ![Dashboard](docs/images/dashboard.png)
+![Dashboard](docs/images/dashboard_2.png)
 
 ---
 
@@ -37,6 +38,7 @@ meeting_harmony_analyzer/
 ├── docs/
 │   └── images/               ← Screenshots for README
 │       ├── dashboard.png
+│       ├── dashboard_2.png
 │       ├── spec_good.png
 │       ├── spec_chaotic.png
 │       ├── spec_silent.png
