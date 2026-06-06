@@ -2,8 +2,8 @@
 
 A real-time audio analytics dashboard that measures meeting communication quality using DSP signal processing. Scores meetings on a 0–100 scale based on speech balance, overlap, and silence.
 
-![Dashboard](docs/images/dashboard.png)
 ![Dashboard](docs/images/dashboard_2.png)
+![Dashboard](docs/images/dashboard.png)
 
 ---
 
