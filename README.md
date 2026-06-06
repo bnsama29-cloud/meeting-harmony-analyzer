@@ -2,6 +2,8 @@
 
 A real-time audio analytics dashboard that measures meeting communication quality using DSP signal processing. Scores meetings on a 0–100 scale based on speech balance, overlap, and silence.
 
+![Dashboard](docs/images/dashboard.png)
+
 ---
 
 ## 🚀 Features
@@ -34,12 +36,16 @@ meeting_harmony_analyzer/
 │
 ├── docs/
 │   └── images/               ← Screenshots for README
+│       ├── dashboard.png
 │       ├── spec_good.png
 │       ├── spec_chaotic.png
 │       ├── spec_silent.png
 │       ├── speech_good.png
 │       ├── speech_chaotic.png
-│       └── speech_silent.png
+│       ├── speech_silent.png
+│       ├── rms_good.png
+│       ├── rms_chaotic.png
+│       └── rms_silent.png
 │
 └── audio/
     ├── perfect.wav            ← Meeting scenarios (10)
@@ -160,6 +166,13 @@ Three representative test cases showing the full range from healthy to broken co
 |:---:|:---:|:---:|
 | ![](docs/images/speech_good.png) | ![](docs/images/speech_chaotic.png) | ![](docs/images/speech_silent.png) |
 | Balanced turns, healthy pauses | Constant overlap, no pauses | Near-zero activity throughout |
+
+### RMS Energy
+
+| Good Meeting (79) | Chaotic Meeting (42) | Silent Meeting (17) |
+|:---:|:---:|:---:|
+| ![](docs/images/rms_good.png) | ![](docs/images/rms_chaotic.png) | ![](docs/images/rms_silent.png) |
+| Rhythmic rise-fall pattern | Flat wall of high energy | Near-zero flat line |
 
 ---
 
